@@ -57,7 +57,9 @@ const fetch =
  * @property {string} txId
  * @property {object=} script
  * @property {object=} datum
+ * @property {object=} datumJSON
  * @property {object=} redeemer
+ * @property {object=} redeemerJSON
  * @property {[number, number]} executionUnits
  */
 /**
@@ -65,6 +67,8 @@ const fetch =
  * @property {string} address
  * @property {object} value
  * @property {string} datumHash
+ * @property {string} datumEmbedFile
+ * @property {string} datumEmbedJSON
  */
 /**
  * @typedef {Object} TxInCollateral
@@ -79,6 +83,7 @@ const fetch =
  * @property {object} script
  * @property {object=} datum
  * @property {object=} redeemer
+ * @property {object=} redeemerJSON
  * @property {[number, number]} executionUnits
  */
 /**
@@ -1103,6 +1108,32 @@ class CardanocliJs {
       .toString()
       .trim();
   }
+
+  /**
+   *
+   * @param {object} script
+   * @returns {string} Datum hash
+   */
+     transactionHashScriptFile(script) {
+      if (this.httpProvider && typeof window !== "undefined") {
+        let response = fetch(`${this.httpProvider}/transactionHashScriptData`, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify(script),
+        });
+        return response.then((res) => res.text());
+      }
+      return execSync(
+        `${
+          this.cliPath
+        } transaction hash-script-data --script-data-file '${jsonToPath(this.dir, script)}'`
+      )
+        .toString()
+        .trim();
+    }
+
 
   /**
    *

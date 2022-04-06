@@ -104,6 +104,16 @@ exports.jsonToPath = (dir, json, type = "script") => {
   return `${dir}/tmp/${type}_${scriptUID}.json`;
 };
 
+exports.datumToString = (dir, datum, datumJSON) =>
+  datumJSON
+    ? `--tx-in-datum-file  ${this.jsonToPath(dir, datumJSON)}`
+    : `--tx-in-datum-value ${JSON.stringify(datum)}`;
+
+exports.redeemerToString = (dir, redeemer, redeemerJSON) =>
+  redeemerJSON
+    ? `--tx-in-redeemer-file  ${this.jsonToPath(dir, redeemerJSON)}`
+    : `--tx-in-redeemer-value ${JSON.stringify(redeemer)}`;
+
 exports.txInToString = (dir, txInList, isCollateral) => {
   let result = "";
   txInList.forEach(
@@ -115,12 +125,12 @@ exports.txInToString = (dir, txInList, isCollateral) => {
           ? `--tx-in-script-file ${this.jsonToPath(dir, txIn.script)} `
           : ""
       } ${
-        txIn.datum
-          ? `--tx-in-datum-value '${JSON.stringify(txIn.datum)}' `
+        txIn.datum || txIn.datumJSON
+          ? this.datumToString(dir, txIn.datum, txIn.datumJSON)
           : ""
       } ${
-        txIn.redeemer
-          ? `--tx-in-redeemer-value '${JSON.stringify(txIn.redeemer)}' `
+        txIn.redeemer || txIn.redeemerJSON
+          ? this.redeemerToString(dir, txIn.redeemer, txIn.redeemerJSON)
           : ""
       } ${
         txIn.executionUnits
@@ -133,7 +143,7 @@ exports.txInToString = (dir, txInList, isCollateral) => {
   return result;
 };
 
-exports.txOutToString = (txOutList) => {
+exports.txOutToString = (txOutList, dir = ".") => {
   let result = "";
   txOutList.forEach((txOut) => {
     result += `--tx-out "${txOut.address}+${txOut.value.lovelace}`;
@@ -142,7 +152,20 @@ exports.txOutToString = (txOutList) => {
       result += `+${txOut.value[asset]} ${asset}`;
     });
     result += `" `;
-    txOut.datumHash && (result += `--tx-out-datum-hash ${txOut.datumHash}`);
+
+    switch (true) {
+      case !!txOut.datumHash:
+        result += `--tx-out-datum-hash ${txOut.datumHash} `;
+        break;
+      case !!txOut.datumEmbedFile:
+        result += `--tx-out-datum-embed-file ${this.jsonToPath(
+          dir,
+          txOut.datumEmbedFile
+        )} `;
+        break;
+      case !!txOut.datumEmbedJSON:
+        result += `--tx-out-datum-embed-json ${txOut.datumEmbedJSON} `;
+    }
   });
   return result;
 };
@@ -194,6 +217,11 @@ exports.fileExists = (files) => {
   }
 };
 
+exports.mintRedeemerToString = (dir, mintRedeemer, mintRedeemerJSON) =>
+  mintRedeemerJSON
+    ? `--mint-redeemer-file  ${this.jsonToPath(dir, mintRedeemerJSON)}`
+    : `--mint-redeemer-value ${JSON.stringify(mintRedeemer)}`;
+
 exports.mintToString = (dir, minting) => {
   let result = `--mint="`;
   minting.forEach((mint, index, arr) => {
@@ -219,12 +247,13 @@ exports.mintToString = (dir, minting) => {
   const usedScripts = [];
   result += minting
     .map((mint) => {
+      const stringifiedScript = JSON.stringify(mint.script);
+      if (usedScripts.includes(stringifiedScript)) return "";
+      usedScripts.push(stringifiedScript);
       const script = this.jsonToPath(dir, mint.script);
-      if (usedScripts.includes(script)) return "";
-      usedScripts.push(script);
       return `--mint-script-file ${script} ${
-        mint.redeemer
-          ? `--mint-redeemer-value '${JSON.stringify(mint.redeemer)}' `
+        mint.redeemer || mint.redeemerJSON
+          ? this.mintRedeemerToString(dir, mint.redeemer, mint.redeemerJSON)
           : ""
       } ${
         mint.executionUnits
