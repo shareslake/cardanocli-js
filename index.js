@@ -902,7 +902,7 @@ class CardanocliJs {
 
     const scriptInvalid = options.scriptInvalid ? "--script-invalid" : "";
     execSync(`${this.cliPath} transaction build-raw \
-                --alonzo-era \
+                --babbage-era \
                 ${txInString} \
                 ${txOutString} \
                 ${txInCollateralString} \
@@ -1227,7 +1227,7 @@ class CardanocliJs {
     const multiAsset = multiAssetToString(value);
     return parseInt(
         execSync(`${this.cliPath} transaction calculate-min-required-utxo \
-                --alonzo-era \
+                --babbage-era \
                 --tx-out ${address}+${multiAsset} \
                 --protocol-params-file ${this.protocolParametersPath}`)
             .toString()
